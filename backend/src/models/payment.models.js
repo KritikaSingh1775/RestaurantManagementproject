@@ -22,13 +22,13 @@ const paymentSchema = new mongoose.Schema(
         required : true,
         default : null
       },
-      rozarPayId : {
+      paymentId : {
         type : String,
-        default : null
+        default : undefined
       }
    }, {
     timestamps : true
-   }
+   }  
 )
 
 

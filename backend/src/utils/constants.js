@@ -1,3 +1,4 @@
+
 export const userRoleEnums = {
   ADMIN: "admin",
   USER : "user"
@@ -42,6 +43,17 @@ const userLoginType = {
   EMAIL_PASSWORD : "EMAIL_PASSWORD"
 }
 
+
+export const tableReservationStatus = {
+  PENDING : "Pending",
+  CONFIRM : "Confirm",
+  COMPLETED : "Completed",
+  CANCELLED : "Cancelled"
+}
+
+const tableReservationStatusEnums = Object.values(tableReservationStatus)
+
+
 const AvailbleSocialLogins = Object.values(userLoginType)
 
 const USER_TEMPORARY_TOKEN = 20 * 60 * 1000
@@ -62,5 +74,6 @@ export {
   USER_TEMPORARY_TOKEN,
   menuCategoryEnums,
   OrderStatusEnums,
-  paymentTypeEnums
+  paymentTypeEnums,
+  tableReservationStatusEnums
 }

@@ -1,4 +1,5 @@
 import mongoose from 'mongoose'
+import { tableReservationStatus, tableReservationStatusEnums } from '../utils/constants';
 
 const resevationSchema = new mongoose.Schema(
   {
@@ -7,7 +8,7 @@ const resevationSchema = new mongoose.Schema(
       require : true,
       trim : true
     },
-    PhoneNumber : {
+    phoneNumber : {
       type : Number,
       required : true
     },
@@ -15,7 +16,7 @@ const resevationSchema = new mongoose.Schema(
       type : Number ,
       required : true
     },
-    StartTime : {
+    startTime : {
       type : Date,
       required : true
     },
@@ -30,6 +31,11 @@ const resevationSchema = new mongoose.Schema(
     SpecialRequests : {
       type : String,
       default : ""
+    },
+    tableReservationStatus : {
+      type : String,
+      enum : tableReservationStatusEnums,
+      default : tableReservationStatus.PENDING
     }
    }, { timestamps : true }
 )

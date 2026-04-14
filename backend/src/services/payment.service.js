@@ -1,20 +1,30 @@
-import Rozarpay from 'razorpay'
-import { rozarPayKeyId, rozarPayKeySecret } from '../utils/config.js';
+import Razorpay from "razorpay";
+import { rozarPayKeyId, rozarPayKeySecret } from "../utils/config.js";
 
-const rozarpay = new Rozarpay({
-   key_id : rozarPayKeyId,
-   key_secret : rozarPayKeySecret
-})
+const razorpay = new Razorpay({
+  key_id: rozarPayKeyId,
+  key_secret: rozarPayKeySecret,
+});
 
+const paymentService = async (amount) => {
+  try {
+    const options = {
+      amount: amount * 100,
+      currency: "INR",
+      receipt: "receipt_" + Date.now(),
+    };
 
-const paymentService = async(amount) => {
-  const options = {
-     amount : amount,
-     currency : "INR",
-     receipt : "receipt_" + Date.now(),
+    console.log("options:", options);
+
+    const order = await razorpay.orders.create(options);
+
+    console.log("order:", order);
+
+    return order;
+  } catch (error) {
+    console.error("Razorpay Error:", error);
+    throw error;
   }
+};
 
-  return await rozarpay.orders.create(options)
-}
-
-export default paymentService
+export default paymentService;

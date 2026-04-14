@@ -1,9 +1,9 @@
+import User from '../models/user.models.js';
 import ApiError from '../utils/ApiError.js';
 import ApiResponse from '../utils/ApiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
-import { removeRefreshTokenAndPassword, requredField } from '../utils/helper.js';
-import User from '../models/user.models.js'
 import { adminKey } from '../utils/config.js';
+import { removeRefreshTokenAndPassword, requiredField } from '../utils/helper.js';
 
 const option = {
   httpOnly : true,
@@ -33,7 +33,7 @@ const registerUser = asyncHandler(async(req,res)=>{
 
     const { fullName, email, password, adminSuperKey, phoneNumber, address } = req.body
 
-    requredField([fullName,email,password,phoneNumber])
+    requiredField([fullName,email,password,phoneNumber])
 
     let role;
     if(adminSuperKey !== adminKey) {
@@ -68,7 +68,7 @@ const loginUser = asyncHandler(async(req,res)=>{
 
   const { email, password } = req.body
 
-  requredField([email,password])
+  requiredField([email,password])
 
     const user = await User.findOne({email})
 
@@ -101,7 +101,7 @@ const logoutUser = asyncHandler(async(req,res)=>{
           $set : {
             refreshToken : ""
           }
-    }, { save : true })
+    }, { new: true })
 
 
 
@@ -114,7 +114,7 @@ const logoutUser = asyncHandler(async(req,res)=>{
 
 const updateUserFiled = asyncHandler(async(req,res)=>{
 
-    requredField([...req.body])
+    requiredField([...req.body])
 
    const user = await User.findByIdAndUpdate(req.user._id, {
         $set : req.body
@@ -149,7 +149,7 @@ const changeCurrentPassword = asyncHandler(async(req,res)=>{
 
     const { oldPassword, newPassword } = req.body
 
-    requredField([oldPassword, newPassword])
+    requiredField([oldPassword, newPassword])
 
     const user = await User.findById(req.user._id)
 
@@ -220,12 +220,6 @@ const verifyEmail = asyncHandler(async(req,res)=>{
 
 
 export {
-  registerUser,
-  loginUser,
-  logoutUser,
-  updateUserFiled,
-  updateAvatar,
-  changeCurrentPassword,
-  verifyEmailRequest,
-  verifyEmail
-}
+    changeCurrentPassword, loginUser,
+    logoutUser, registerUser, updateAvatar, updateUserFiled, verifyEmail, verifyEmailRequest
+};

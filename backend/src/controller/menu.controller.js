@@ -1,13 +1,13 @@
-import asyncHandler from '../utils/asyncHandler.js';
-import ApiResponse from '../utils/ApiResponse.js';
-import { requredField } from '../utils/helper.js';
 import Menu from '../models/menu.models.js';
+import ApiResponse from '../utils/ApiResponse.js';
+import asyncHandler from '../utils/asyncHandler.js';
+import { requiredField } from '../utils/helper.js';
 
 const addNewMenu = asyncHandler(async(req,res)=>{
 
   const { itemName, itemDescription, itemImage, priceOfItem, itemCategory } = req.body
 
-    requredField([itemDescription, itemName, priceOfItem, itemCategory])
+    requiredField([itemDescription, itemName, priceOfItem, itemCategory])
 
     console.log({ itemName, itemDescription, itemImage, priceOfItem, itemCategory })
 
@@ -46,7 +46,7 @@ const changePrice = asyncHandler(async(req,res)=>{
   const { itemId } = req.params
   const { newPrice } = req.body
 
-  requredField([newPrice])
+  requiredField([newPrice])
 
   await Menu.findByIdAndUpdate(itemId, {
     $set : {
@@ -61,8 +61,5 @@ const changePrice = asyncHandler(async(req,res)=>{
 
 
 export {
-  addNewMenu,
-  fetchMenuFullMenu,
-  deleteItem,
-  changePrice
-}
+    addNewMenu, changePrice, deleteItem, fetchMenuFullMenu
+};

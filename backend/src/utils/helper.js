@@ -1,7 +1,7 @@
-import ApiError from './ApiError.js';
 import User from '../models/user.models.js';
+import ApiError from './ApiError.js';
 
-export const requredField = (requiredField = []) => {
+export const requiredField = (requiredField = []) => {
    try {
          requiredField.some((field) => String(field).trim === "" || field === undefined)
    } catch (error) {

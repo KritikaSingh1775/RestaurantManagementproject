@@ -5,8 +5,7 @@ import ApiError from "../utils/ApiError.js";
 import ApiResponse from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { paymentType } from "../utils/constants.js";
-import { requredField } from '../utils/helper.js';
-
+import { requiredField } from '../utils/helper.js';
 
 
 const newPayment = asyncHandler(async(req,res) => {
@@ -20,34 +19,45 @@ const newPayment = asyncHandler(async(req,res) => {
       throw new ApiError(400, "Order can't find")
   }
 
-    requredField([paymentAmount, typeOfPayment])
+    requiredField([paymentAmount, typeOfPayment])
 
     if(typeOfPayment === paymentType.ONLINE) {
         const payId =  await paymentService(paymentAmount)
+
+        console.log("payId : ",payId );
 
         const paymentId =  await Payment.create({
                 orderId : order._id,
                 userId : req.user._id,
                 typeOfPayment : paymentType.ONLINE,
                 paymentAmount : paymentAmount,
-                rozarPayId : payId
+                paymentId : payId.id
           })
+
+          console.log("paymentId : ", paymentId);
 
           await Order.findByIdAndUpdate(order._id, {
             $set : {
                 paymentId : paymentId?._id
             }
-          }, { save : true })
+          }, { new: true })
 
           console.log(paymentId)
 
-          return res.status(201).json(new ApiResponse(201, {paymentId}, ""))
+          return res.status(201).json(new ApiResponse(201, { paymentId }, ""))
 
+    } else if (typeOfPayment === paymentType.CASHONDELIVERY) {
+      const paymentId =   await Payment.create({
+            typeOfPayment : paymentType.CASHONDELIVERY,
+            userId : req.user?._id,
+             paymentAmount : paymentAmount,
+        })
+        await Order.findByIdAndUpdate(order._id, {
+            $set : {
+                paymentId : paymentId?._id
+            }
+          }, { new: true })
     }
-
-
-
-
 
   return res.status(201).json(new ApiResponse(201, {}, ""))
 })
