@@ -41,17 +41,12 @@ const deleteItem = asyncHandler(async(req,res)=>{
   return res.status(204).json(new ApiResponse(204, {}, "Item delete sucessfully"))
 })
 
-const changePrice = asyncHandler(async(req,res)=>{
+const updateItem = asyncHandler(async(req,res)=>{
 
   const { itemId } = req.params
-  const { newPrice } = req.body
-
-  requiredField([newPrice])
 
   await Menu.findByIdAndUpdate(itemId, {
-    $set : {
-        priceOfItem : newPrice
-    }
+    $set :  req.body
   }, { save : false })
 
     return res.status(201).json(new ApiResponse(201, {}, "item update successfully"))
@@ -61,5 +56,5 @@ const changePrice = asyncHandler(async(req,res)=>{
 
 
 export {
-    addNewMenu, changePrice, deleteItem, fetchMenuFullMenu
+    addNewMenu, updateItem, deleteItem, fetchMenuFullMenu
 };

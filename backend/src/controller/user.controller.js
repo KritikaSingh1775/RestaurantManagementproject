@@ -217,9 +217,22 @@ const verifyEmail = asyncHandler(async(req,res)=>{
           .json(new ApiResponse(204 , {} , " Email Verified successfully "))
 })
 
+const allUsers = asyncHandler(async(req,res)=>{
+
+    const users = await User.find().populate()
+
+  return res.status(200).json(new ApiResponse(200, { users } , "all Users fetch successfully"))
+})
 
 
 export {
-    changeCurrentPassword, loginUser,
-    logoutUser, registerUser, updateAvatar, updateUserFiled, verifyEmail, verifyEmailRequest
+    changeCurrentPassword,
+    loginUser,
+    logoutUser,
+    registerUser,
+    updateAvatar,
+    updateUserFiled,
+    verifyEmail,
+    verifyEmailRequest,
+    allUsers
 };

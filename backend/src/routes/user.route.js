@@ -1,11 +1,12 @@
 import { Router } from 'express'
 import {
+  allUsers,
   loginUser,
   logoutUser,
   registerUser,
   verifyEmail
 } from "../controller/user.controller.js"
-import { verifyJWT } from "../middleware/auth.middelware.js"
+import { verifyAdmin, verifyJWT } from "../middleware/auth.middelware.js"
 import passport from "../passport/index.js"
 
 const router = Router()
@@ -19,7 +20,7 @@ router.route("/user/logout").post(verifyJWT, logoutUser)
 
 router.route("/user/email-verify").post(verifyJWT, verifyEmail)
 
-
+router.route("/user/all-users").get(verifyAdmin, allUsers)
 
 
 router.route("/google").get(

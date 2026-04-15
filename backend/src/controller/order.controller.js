@@ -4,26 +4,42 @@ import ApiResponse from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { OrderStatusEnums, orderType } from "../utils/constants.js";
 import { requiredField } from '../utils/helper.js';
+import mongoose  from "mongoose";
 
 
 const createOrder = asyncHandler(async (req, res) => {
   const { typeOfOrder, tableNo, specialNotes, items, address } = req.body;
 
-  if (!Object.values(orderType).includes(typeOfOrder)) {
-    throw new ApiError(400, "Invalid order type");
-  }
+      if (!Object.values(orderType).includes(typeOfOrder)) {
+        throw new ApiError(400, "Invalid order type");
+      }
 
-  requiredField([items]);
-  if (!Array.isArray(items) || items.length === 0) {
-    throw new ApiError(400, "Items must be a non-empty array");
-  }
+      requiredField(items);
 
-  let orderData = {
-    orderType: typeOfOrder,
-    userId: req.user._id,
-    items,
-    activeOrder: false,
-  };
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new ApiError(400, "Items must be a non-empty array");
+    }
+
+    items.forEach((item) => {
+      if (!item.itemId || !item.quantity) {
+        throw new ApiError(400, "Each item must have itemId and quantity");
+      }
+
+      if (item.quantity <= 0) {
+        throw new ApiError(400, "Quantity must be greater than 0");
+      }
+
+      if (!mongoose.Types.ObjectId.isValid(item.itemId)) {
+        throw new ApiError(400, `Invalid itemId: ${item.itemId}`);
+      }
+    });
+
+    let orderData = {
+      orderType: typeOfOrder,
+      userId: req.user._id,
+      items,
+      activeOrder: false,
+    };
 
   if (typeOfOrder === orderType.TABLEORDER) {
     requiredField([tableNo]);
@@ -33,7 +49,6 @@ const createOrder = asyncHandler(async (req, res) => {
 
   } else if (typeOfOrder === orderType.HOMEDELIVERY) {
     requiredField([address]);
-
     orderData.address = address;
   }
 
@@ -44,36 +59,36 @@ const createOrder = asyncHandler(async (req, res) => {
     .json(new ApiResponse(201, { order }, "Order created successfully"));
 });
 
-const orderStatusUpdate = asyncHandler(async(req,res)=>{
+// admin
+const orderStatusUpdate = asyncHandler(async (req, res) => {
+  const { status } = req.body;
+  const { orderId } = req.params;
 
-    const { status } = req.body
-    const { orderId } = req.params
+  requiredField([status]);
 
-    requiredField([status])
+  if (!OrderStatusEnums.includes(status)) {
+    throw new ApiError(400, "Please provide a valid status");
+  }
 
-    if(!OrderStatusEnums.includes(status)) {
-      throw new Error(400, "Please put some validate status")
+  const order = await Order.findByIdAndUpdate(
+    orderId,
+    {
+      orderStatus: status,
+    },
+    {
+      new: true,
+      runValidators: true,
     }
+  );
 
-    const tableOrder = await Order.findById(orderId)
+  if (!order) {
+    throw new ApiError(404, "Order not found");
+  }
 
-    if(!tableOrder) {
-      throw new ApiError(400, "Order not found")
-    }
-
-
-    const order = await Order.findByIdAndUpdate(orderId, {
-      $set : {
-        orderStatus : status
-      }
-    }, { save : false })
-
-    if(!order) {
-      throw new ApiError(400, " order status can't change ")
-    }
-
-    return res.status(200).json(new ApiResponse(200, {} , "Order updated successfully"))
-})
+  return res.status(200).json(
+    new ApiResponse(200, order, "Order updated successfully")
+  );
+});
 
 const tableOrderUpdate = asyncHandler(async(req,res) => {
 
@@ -86,6 +101,22 @@ const tableOrderUpdate = asyncHandler(async(req,res) => {
     if(!order) {
       throw new ApiError(400, "Order can't find")
     }
+      requiredField(items);
+
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new ApiError(400, "Items must be a non-empty array");
+    }
+
+    items.forEach((item) => {
+      if (!item.itemId || !item.quantity) {
+        throw new ApiError(400, "Each item must have itemId and quantity");
+      }
+
+      if (item.quantity <= 0) {
+        throw new ApiError(400, "Quantity must be greater than 0");
+      }
+
+    })
 
     const updateData = {}
 
@@ -117,13 +148,13 @@ const tableOrderUpdate = asyncHandler(async(req,res) => {
   }
 
   const updatedOrder = await Order.findByIdAndUpdate(
-    orderId,
+    order?._id,
     { $set: updateData },
     { new: true }
   );
 
 
-    return res.status(200).json(new ApiResponse(200, { updatedOrder } , "table order update"))
+    return res.status(200).json(new ApiResponse(200,  { updatedOrder }  , "table order update"))
 })
 
 const deleteTableOrder = asyncHandler(async(req,res)=>{
@@ -143,7 +174,7 @@ const deleteTableOrder = asyncHandler(async(req,res)=>{
     await Order.findByIdAndDelete(order?._id)
 
   return res.status(200).json(new ApiResponse(200, {}, "Table order delete successfully"))
-})
+});
 
 
 
@@ -152,4 +183,4 @@ export {
   orderStatusUpdate,
   tableOrderUpdate,
   deleteTableOrder
-};
+}

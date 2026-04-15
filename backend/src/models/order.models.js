@@ -13,7 +13,7 @@ const orderSchema = new mongoose.Schema(
                     type : mongoose.Schema.Types.ObjectId,
                     ref : "Menu"
                   },
-                  qunatity : {
+                  quantity : {
                     type : Number,
                     default : 1
                   }
