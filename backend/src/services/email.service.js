@@ -19,7 +19,7 @@ export const emailService = async (
 ) => {
   requiredField([email, name, status, tableNo, noOfGuest]);
 
-  const validStatuses = ['Confirmed', 'Cancelled'];
+  const validStatuses = ['Confirm', 'Cancelled'];
   if (!validStatuses.includes(status)) {
     throw new ApiError(400, `Invalid status. Must be one of: ${validStatuses.join(', ')}`);
   }
@@ -27,12 +27,12 @@ export const emailService = async (
   const { retryCount = 3, testMode = false } = options;
 
   const statusConfig = {
-    'Confirmed': {
+    'Confirm': {
       color: '#10b981',
       bgGradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
       icon: '✅',
-      title: 'Reservation Confirmed!',
-      badge: 'CONFIRMED',
+      title: 'Reservation Confirm!',
+      badge: 'Confirm',
       actionButtonText: 'View Reservation Details',
       secondaryMessage: '🎉 Your table has been reserved successfully! We look forward to serving you.'
     },
@@ -106,7 +106,7 @@ export const emailService = async (
         email: email,
         name: name
       }],
-      subject: `${status === 'Confirmed' ? '✅' : '❌'} Reservation ${status} - Table ${tableNo} | Athenura`,
+      subject: `${status === 'Confirm' ? '✅' : '❌'} Reservation ${status} - Table ${tableNo} | Athenura`,
 
       htmlContent: `
       <!DOCTYPE html>
@@ -290,7 +290,7 @@ export const emailService = async (
           }
 
           .message-box {
-            background: ${status === 'Confirmed' ? '#ecfdf5' : '#fef2f2'};
+            background: ${status === 'Confirm' ? '#ecfdf5' : '#fef2f2'};
             border-left: 4px solid ${config.color};
             padding: 20px;
             border-radius: 12px;
@@ -298,7 +298,7 @@ export const emailService = async (
           }
 
           .message-box p {
-            color: ${status === 'Confirmed' ? '#065f46' : '#991b1b'};
+            color: ${status === 'Confirm' ? '#065f46' : '#991b1b'};
             font-size: 16px;
             line-height: 1.6;
             margin: 0;
@@ -453,7 +453,7 @@ export const emailService = async (
       tags: ['Reservation', status, `Table_${tableNo}`, `Guests_${noOfGuest}`],
 
       headers: {
-        'X-Priority': status === 'Confirmed' ? '1 (Highest)' : '3 (Normal)',
+        'X-Priority': status === 'Confirm' ? '1 (Highest)' : '3 (Normal)',
         'X-Mailer': 'Athenura-Reservation-System',
         'X-Reservation-ID': reservationId || 'N/A'
       }

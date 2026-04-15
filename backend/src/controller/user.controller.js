@@ -2,6 +2,7 @@ import User from '../models/user.models.js';
 import ApiError from '../utils/ApiError.js';
 import ApiResponse from '../utils/ApiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
+import uploadCloudinary from '../utils/cloudinary.js';
 import { adminKey } from '../utils/config.js';
 import { removeRefreshTokenAndPassword, requiredField } from '../utils/helper.js';
 
@@ -35,6 +36,16 @@ const registerUser = asyncHandler(async(req,res)=>{
 
     requiredField([fullName,email,password,phoneNumber])
 
+
+    const avatar = req.files?.avatar?.[0]?.path
+    console.log(avatar)
+
+    let avatarURI;
+
+    if(avatar) {
+       avatarURI =  await uploadCloudinary(avatar)
+    }
+
     let role;
     if(adminSuperKey !== adminKey) {
         role = "user"
@@ -54,6 +65,7 @@ const registerUser = asyncHandler(async(req,res)=>{
           fullName,
           password,
           email,
+          avatar : avatarURI ? avatarURI.url : avatarURI,
           phoneNumber,
           role : role,
           address : address
@@ -61,7 +73,7 @@ const registerUser = asyncHandler(async(req,res)=>{
 
       await removeRefreshTokenAndPassword(user._id)
 
-    return res.status(200).json(new ApiResponse(201, {}, `${user.role} created Successfully`))
+    return res.status(200).json(new ApiResponse(201, {}, `${`user.role`} created Successfully`))
 })
 
 const loginUser = asyncHandler(async(req,res)=>{
@@ -90,7 +102,7 @@ const loginUser = asyncHandler(async(req,res)=>{
   .status(200)
   .cookie("accessToken" , accessToken, option)
   .cookie("refreshToken" , refreshToken, option)
-  .json(new ApiResponse(200, {} , `${user.role} logged in successfully`))
+  .json(new ApiResponse(200, user , `${user.role} logged in successfully`))
 })
 
 const logoutUser = asyncHandler(async(req,res)=>{
@@ -224,6 +236,35 @@ const allUsers = asyncHandler(async(req,res)=>{
   return res.status(200).json(new ApiResponse(200, { users } , "all Users fetch successfully"))
 })
 
+const currentUser = asyncHandler(async(req,res)=>{
+
+  console.log("req.user",req.user)
+
+    const user = await User.findById(req.user?._id).populate()
+
+   await removeRefreshTokenAndPassword(user._id)
+
+  return res.status(200).json(new ApiResponse(200,   user, "user fetch Successfully"))
+})
+
+
+const googleLoginCallback = asyncHandler(async (req, res) => {
+  const user = req.user;
+
+  if (!user) {
+    throw new ApiError(401, "Google authentication failed");
+  }
+
+  const { refreshToken, accessToken } = await generateAccessRefreshToken(user._id);
+
+  const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
+
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, option)
+    .cookie("refreshToken", refreshToken, option)
+    .redirect(`${process.env.CLIENT_URL}/dashboard`);
+});
 
 export {
     changeCurrentPassword,
@@ -234,5 +275,7 @@ export {
     updateUserFiled,
     verifyEmail,
     verifyEmailRequest,
-    allUsers
+    allUsers,
+    googleLoginCallback,
+    currentUser
 };

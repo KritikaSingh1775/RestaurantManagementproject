@@ -5,58 +5,85 @@ import asyncHandler from "../utils/asyncHandler.js";
 import { OrderStatusEnums, orderType } from "../utils/constants.js";
 import { requiredField } from '../utils/helper.js';
 import mongoose  from "mongoose";
+import Menu from '../models/menu.models.js';
 
-
-const createOrder = asyncHandler(async (req, res) => {
-  const { typeOfOrder, tableNo, specialNotes, items, address } = req.body;
-
-      if (!Object.values(orderType).includes(typeOfOrder)) {
-        throw new ApiError(400, "Invalid order type");
-      }
-
-      requiredField(items);
-
-    if (!Array.isArray(items) || items.length === 0) {
-      throw new ApiError(400, "Items must be a non-empty array");
-    }
-
-    items.forEach((item) => {
-      if (!item.itemId || !item.quantity) {
-        throw new ApiError(400, "Each item must have itemId and quantity");
-      }
-
-      if (item.quantity <= 0) {
-        throw new ApiError(400, "Quantity must be greater than 0");
-      }
-
-      if (!mongoose.Types.ObjectId.isValid(item.itemId)) {
-        throw new ApiError(400, `Invalid itemId: ${item.itemId}`);
-      }
-    });
-
-    let orderData = {
-      orderType: typeOfOrder,
-      userId: req.user._id,
-      items,
-      activeOrder: false,
-    };
-
-  if (typeOfOrder === orderType.TABLEORDER) {
-    requiredField([tableNo]);
-
-    orderData.tableNo = tableNo;
-    orderData.specialNotes = specialNotes;
-
-  } else if (typeOfOrder === orderType.HOMEDELIVERY) {
-    requiredField([address]);
-    orderData.address = address;
+const validateItems = (items) => {
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new ApiError(400, "Items must be a non-empty array");
   }
 
-  const order = await Order.create(orderData);
+  for (const item of items) {
+    if (!item.itemId || item.quantity == null) {
+      throw new ApiError(400, "Each item must have itemId and quantity");
+    }
 
-  return res
-    .status(201)
-    .json(new ApiResponse(201, { order }, "Order created successfully"));
+    if (item.quantity <= 0) {
+      throw new ApiError(400, "Quantity must be greater than 0");
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(item.itemId)) {
+      throw new ApiError(400, `Invalid itemId: ${item.itemId}`);
+    }
+  }
+};
+
+const checkItemsExist = async (items) => {
+  const itemIds = items.map(i => i.itemId);
+
+  const menuItems = await Menu.find({ _id: { $in: itemIds } });
+
+  if (menuItems.length !== itemIds.length) {
+    throw new ApiError(400, "Some items do not exist");
+  }
+
+  return menuItems;
+};
+
+const createHomeDeliveryOrder = asyncHandler(async (req, res) => {
+  const { address, items } = req.body;
+
+  if (!address) {
+    throw new ApiError(400, "Address is required");
+  }
+
+  validateItems(items);
+  const menuItems = await checkItemsExist(items);
+
+  const order = await Order.create({
+    orderType: orderType.HOMEDELIVERY,
+    userId: req.user._id,
+    address,
+    items,
+    activeOrder: false
+  });
+
+  return res.status(201).json(
+    new ApiResponse(201, order, "Home delivery order created successfully")
+  );
+});
+
+const createTableOrder = asyncHandler(async (req, res) => {
+  const { tableNo, specialNotes, items } = req.body;
+
+  if (!tableNo) {
+    throw new ApiError(400, "Table number is required");
+  }
+
+  validateItems(items);
+  const menuItems = await checkItemsExist(items);
+
+  const order = await Order.create({
+    orderType: orderType.TABLEORDER,
+    userId: req.user._id,
+    tableNo,
+    specialNotes,
+    items,
+    activeOrder: false
+  });
+
+  return res.status(201).json(
+    new ApiResponse(201, order, "Table order created successfully")
+  );
 });
 
 // admin
@@ -120,9 +147,12 @@ const tableOrderUpdate = asyncHandler(async(req,res) => {
 
     const updateData = {}
 
-    if(order.userId !== req.user?._id) {
+
+    if(order.userId === req.user?._id) {
       throw new ApiError(401, "You can't update the Table order")
     }
+
+
 
 
     if(order.orderType !== orderType.TABLEORDER ) {
@@ -176,6 +206,19 @@ const deleteTableOrder = asyncHandler(async(req,res)=>{
   return res.status(200).json(new ApiResponse(200, {}, "Table order delete successfully"))
 });
 
+const cancelledHomeDeliveryOrder = asyncHandler(async(req,res)=>{
+
+  const { orderId } = req.params
+
+   await Order.findByIdAndUpdate(orderId, {
+    $set : {
+        orderStatus : 'Cancelled'
+    }
+   },  { new: true })
+
+    return res.status(200).json(new ApiResponse(200, {}, "Home delivery order cancelled successfully"))
+})
+
 const allOrders = asyncHandler(async (req, res) => {
   const orders = await Order.find()
     .populate("userId", "name email")
@@ -188,11 +231,12 @@ const allOrders = asyncHandler(async (req, res) => {
 });
 
 // user
-const userOrder = asyncHandler(async (req, res) => {
+const userOrders = asyncHandler(async (req, res) => {
   const userId = req.user._id;
 
   const orders = await Order.find({ userId })
     .populate("items.itemId", "name price")
+    .populate("userId" , "fullName")
     .sort({ createdAt: -1 });
 
   return res.status(200).json(
@@ -202,10 +246,12 @@ const userOrder = asyncHandler(async (req, res) => {
 
 
 export {
-  createOrder,
+  createHomeDeliveryOrder,
+  createTableOrder,
   orderStatusUpdate,
   tableOrderUpdate,
   deleteTableOrder,
   allOrders,
-  userOrder
+  userOrders,
+  cancelledHomeDeliveryOrder
 }

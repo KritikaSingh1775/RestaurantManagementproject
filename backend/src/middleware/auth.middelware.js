@@ -5,7 +5,6 @@ import { accessTokenSecret } from "../utils/config.js"
 import asyncHandler from "../utils/asyncHandler.js"
 
 export const verifyJWT = asyncHandler(async (req, res, next) => {
-  console.log(req.cookies.accessToken)
   const token =
     req.cookies?.accessToken ||
     req.header("Authorization")?.replace("Bearer ", "")
@@ -20,6 +19,7 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
   const user = await User.findById(decodedToken._id).select(
     "-password -refreshToken"
   )
+
 
   if (!user) {
     throw new ApiError(401, "Invalid access token")

@@ -1,5 +1,12 @@
 import Router from 'express'
-import { allOrders, createOrder, deleteTableOrder, orderStatusUpdate, tableOrderUpdate, userOrder } from '../controller/order.controller.js'
+import { allOrders,
+  cancelledHomeDeliveryOrder,
+  createHomeDeliveryOrder,
+  createTableOrder,
+  deleteTableOrder,
+  orderStatusUpdate,
+  tableOrderUpdate,
+  userOrders } from '../controller/order.controller.js'
 import { verifyAdmin, verifyJWT } from '../middleware/auth.middelware.js'
 
 
@@ -7,7 +14,9 @@ const router = Router()
 
 router.use(verifyJWT)
 
-router.route('/add/new-order').post(createOrder)
+router.route("/add/table-order").post(createTableOrder)
+
+router.route("/add/home-delivery-order").post(createHomeDeliveryOrder)
 
 router.route("/update/table-order/:orderId").post(tableOrderUpdate)
 
@@ -19,8 +28,9 @@ router.route("/delete/table-order/:orderId").delete(deleteTableOrder)
 router.route("/all-orders").get(verifyAdmin, allOrders)
 
 // user orders
-router.route("/order-user").get(userOrder)
+router.route("/order-users").get(userOrders)
 
+router.route("/cancelled-order/:orderId").post(cancelledHomeDeliveryOrder)
 
 
 export default router

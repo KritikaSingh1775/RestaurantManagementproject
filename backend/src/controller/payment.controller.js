@@ -38,7 +38,8 @@ const newPayment = asyncHandler(async(req,res) => {
 
           await Order.findByIdAndUpdate(order._id, {
             $set : {
-                paymentId : paymentId?._id
+                paymentId : paymentId?._id,
+                activeOrder : true
             }
           }, { new: true })
 

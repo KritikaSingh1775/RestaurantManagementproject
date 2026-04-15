@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import { menuCategoryEnums } from '../utils/constants.js';
 const menuSchema = new mongoose.Schema(
     {
-        itemsName : {
+        itemName : {
           type: String,
           required : true,
           trim : true
@@ -25,6 +25,10 @@ const menuSchema = new mongoose.Schema(
           type : Boolean,
           required : true,
           default: true
+        },
+        Ingredients : {
+          type : Array,
+          default : []
         },
         itemDescription : {
           type : String,

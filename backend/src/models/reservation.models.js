@@ -11,7 +11,6 @@ const resevationSchema = new mongoose.Schema(
     reservationUserEmail : {
         type : String,
         required: true,
-        unique : true,
         lowercase : true,
          match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, 'Email format is incorrect. Use a valid format such as name@example.com (e.g., janesmith@gmail.com) .']
     },
@@ -20,7 +19,7 @@ const resevationSchema = new mongoose.Schema(
         ref : "User"
     },
     phoneNumber : {
-      type : Number,
+      type : String,
       required : true
     },
     noOfGuests : {
@@ -51,6 +50,7 @@ const resevationSchema = new mongoose.Schema(
    }, { timestamps : true }
 )
 
+ resevationSchema.index({ tableNo: 1, date: 1 });
 
 const Reservation = mongoose.model("Reservation", resevationSchema)
 export default Reservation;

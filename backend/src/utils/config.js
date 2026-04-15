@@ -24,3 +24,5 @@ export const brevoApiKey = String(process.env.BREVO_API_KEY)
 export const brevoSenderName = String(process.env.BREVO_SENDER_NAME)
 export const brevoSenderEmail = String(process.env.BREVO_SENDER_EMAIL)
 
+
+

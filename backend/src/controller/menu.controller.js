@@ -1,27 +1,41 @@
 import Menu from '../models/menu.models.js';
 import ApiResponse from '../utils/ApiResponse.js';
 import asyncHandler from '../utils/asyncHandler.js';
+import uploadCloudinary from '../utils/cloudinary.js';
 import { requiredField } from '../utils/helper.js';
 
 const addNewMenu = asyncHandler(async(req,res)=>{
 
-  const { itemName, itemDescription, itemImage, priceOfItem, itemCategory } = req.body
+      const { itemName, itemDescription, priceOfItem, itemCategory, Ingredients } = req.body
 
     requiredField([itemDescription, itemName, priceOfItem, itemCategory])
 
-    console.log({ itemName, itemDescription, itemImage, priceOfItem, itemCategory })
+
+        const itemURI = req.files?.itemImage?.[0]?.path
+        console.log("itemURI",req.files)
+
+        let menuItemURI;
+
+        if(itemURI) {
+           menuItemURI =  await uploadCloudinary(itemURI)
+        }
 
 
-    const menu = await Menu.create({
-        itemsName : itemName,
-        itemDescription : itemDescription,
-        itemImage : itemImage,
-        itemCategory : itemCategory,
-        priceOfItem : priceOfItem,
-    })
+        Array(Ingredients)
+
+        const menuItem = {
+              itemName : itemName,
+              itemDescription : itemDescription,
+              itemImage : menuItemURI ? menuItemURI?.url : menuItemURI,
+              itemCategory : itemCategory,
+              priceOfItem : priceOfItem,
+              Ingredients : Ingredients
+        }
+
+    const menu = await Menu.create(menuItem)
 
     return res.status(201).
-    json(new ApiResponse(201, {},`${menu.itemsName} in menu add successfully` ))
+    json(new ApiResponse(201, {},`${menu.itemName} in menu add successfully` ))
 
 })
 
@@ -41,20 +55,64 @@ const deleteItem = asyncHandler(async(req,res)=>{
   return res.status(204).json(new ApiResponse(204, {}, "Item delete sucessfully"))
 })
 
-const updateItem = asyncHandler(async(req,res)=>{
+const updateItem = asyncHandler(async (req, res) => {
+  const { itemId } = req.params;
 
-  const { itemId } = req.params
+  const {
+    itemName,
+    itemDescription,
+    priceOfItem,
+    itemCategory,
+    Ingredients
+  } = req.body;
 
-  await Menu.findByIdAndUpdate(itemId, {
-    $set :  req.body
-  }, { save : false })
+  let itemImage;
 
-    return res.status(201).json(new ApiResponse(201, {}, "item update successfully"))
-})
+  if (req.files?.itemImage?.[0]?.path) {
+    const uploaded = await uploadCloudinary(req.files.itemImage[0].path);
+    itemImage = uploaded?.url;
+  }
+
+  const updateData = {
+    ...(itemName !== undefined && { itemName }),
+    ...(itemDescription !== undefined && { itemDescription }),
+    ...(priceOfItem !== undefined && { priceOfItem }),
+    ...(itemCategory !== undefined && { itemCategory }),
+    ...(Ingredients !== undefined && { Ingredients }),
+    ...(itemImage && { itemImage })
+  };
 
 
+  if (Object.keys(updateData).length === 0) {
+    return res.status(400).json({
+      message: "No valid fields provided for update"
+    });
+  }
+
+  const updatedItem = await Menu.findByIdAndUpdate(
+    itemId,
+    { $set: updateData },
+    {
+      new: true,
+      runValidators: true
+    }
+  );
+
+  if (!updatedItem) {
+    return res.status(404).json({
+      message: "Item not found"
+    });
+  }
+
+  return res.status(200).json(
+    new ApiResponse(200, updatedItem, "Item updated successfully")
+  );
+});
 
 
 export {
-    addNewMenu, updateItem, deleteItem, fetchFullMenuMenu
+    addNewMenu,
+    updateItem,
+    deleteItem,
+    fetchFullMenuMenu
 };
