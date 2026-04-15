@@ -25,7 +25,7 @@ const addNewMenu = asyncHandler(async(req,res)=>{
 
 })
 
-const fetchMenuFullMenu = asyncHandler(async(req,res)=>{
+const fetchFullMenuMenu = asyncHandler(async(req,res)=>{
 
   const items = await Menu.find()
 
@@ -56,5 +56,5 @@ const updateItem = asyncHandler(async(req,res)=>{
 
 
 export {
-    addNewMenu, updateItem, deleteItem, fetchMenuFullMenu
+    addNewMenu, updateItem, deleteItem, fetchFullMenuMenu
 };

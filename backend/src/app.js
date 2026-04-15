@@ -26,7 +26,6 @@ app.use(cookieParser())
 
 // ---------------------------------------------------------------------
 //  routes import
-import HealthRouter from './routes/health.route.js'
 import AuthRouter from './routes/user.route.js'
 import MenuRouter from './routes/menu.route.js'
 import OrderRouter from './routes/order.route.js'
@@ -41,9 +40,6 @@ app.use("/restaurant/api/v1/menu" , MenuRouter)
 app.use("/restaurant/api/v1/order" , OrderRouter)
 app.use("/restaurant/api/v1/payment" , PaymentRouter)
 app.use("/restaurant/api/v1/reserve" , ReservationRouter)
-
-
-
 
 
 // ---------------------------------------------------------------------

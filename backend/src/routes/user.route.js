@@ -22,7 +22,6 @@ router.route("/user/email-verify").post(verifyJWT, verifyEmail)
 
 router.route("/user/all-users").get(verifyAdmin, allUsers)
 
-
 router.route("/google").get(
     passport.authenticate('google',{
         scope : ["profile","email"]

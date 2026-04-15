@@ -12,6 +12,4 @@ router.route("/new-reserve").post(verifyJWT, newTableReservation)
 
 router.route("/update-reservation/:tableReservationId").post(verifyAdmin, tableReservationStatusAndSendEmailOnConfirmation)
 
-
-
 export default router

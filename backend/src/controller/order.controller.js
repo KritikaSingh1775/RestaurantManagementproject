@@ -176,11 +176,36 @@ const deleteTableOrder = asyncHandler(async(req,res)=>{
   return res.status(200).json(new ApiResponse(200, {}, "Table order delete successfully"))
 });
 
+const allOrders = asyncHandler(async (req, res) => {
+  const orders = await Order.find()
+    .populate("userId", "name email")
+    .populate("items.itemId", "name price")
+    .sort({ createdAt: -1 });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, { orders }, "All orders fetched successfully"));
+});
+
+// user
+const userOrder = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  const orders = await Order.find({ userId })
+    .populate("items.itemId", "name price")
+    .sort({ createdAt: -1 });
+
+  return res.status(200).json(
+    new ApiResponse(200, { orders }, "User orders fetched successfully")
+  );
+});
 
 
 export {
   createOrder,
   orderStatusUpdate,
   tableOrderUpdate,
-  deleteTableOrder
+  deleteTableOrder,
+  allOrders,
+  userOrder
 }
