@@ -2,25 +2,26 @@ import { body, param } from "express-validator";
 
 // CREATE MENU ITEM
 export const createMenuItemValidator = () => [
-  body("name")
+  body("itemsName")
     .trim()
     .notEmpty()
-    .withMessage("Name is required")
+    .withMessage("Items name is required")
     .isLength({ min: 2 })
-    .withMessage("Name must be at least 2 characters"),
+    .withMessage("Items name must be at least 2 characters"),
 
-  body("description")
+  body("itemDescription")
     .optional()
-    .isString()
-    .withMessage("Description must be a string"),
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage("Description max 500 chars"),
 
-  body("price")
+  body("priceOfItem")
     .notEmpty()
     .withMessage("Price is required")
     .isFloat({ gt: 0 })
     .withMessage("Price must be greater than 0"),
 
-  body("category").trim().notEmpty().withMessage("Category is required"),
+  body("itemCategory").trim().notEmpty().withMessage("Category is required"),
 
   body("isAvailable")
     .optional()

@@ -1,223 +1,248 @@
-import ApiError from '../utils/ApiError.js';
-import ApiResponse from '../utils/ApiResponse.js';
-import asyncHandler from '../utils/asyncHandler.js';
-import { removeRefreshTokenAndPassword, requredField } from '../utils/helper.js';
-import User from '../models/user.models.js'
-import { adminKey } from '../utils/config.js';
+import ApiError from "../utils/ApiError.js";
+import ApiResponse from "../utils/ApiResponse.js";
+import asyncHandler from "../utils/asyncHandler.js";
+import {
+  removeRefreshTokenAndPassword,
+  requredField,
+} from "../utils/helper.js";
+import User from "../models/user.models.js";
+import { adminKey } from "../utils/config.js";
+import { uploadOnCloudinary } from "../services/cloudinary.service.js";
 
 const option = {
-  httpOnly : true,
-  secured : true
-}
+  httpOnly: true,
+  secured: true,
+};
 
-const generateAccessRefreshToken = async(userId) => {
+const generateAccessRefreshToken = async (userId) => {
+  const user = await User.findById(userId);
 
-      const user = await User.findById(userId)
+  const accessToken = await user.generateAccessToken();
+  const refreshToken = await user.generateRefreshToken();
 
-    const accessToken =  await  user.generateAccessToken()
-    const refreshToken = await  user.generateRefreshToken()
+  user.refreshToken = refreshToken;
 
-     user.refreshToken = refreshToken
+  await user.save({ validateBeforeSave: false });
 
-    await user.save({ validateBeforeSave : false })
+  return {
+    refreshToken,
+    accessToken,
+  };
+};
 
-    return {
-      refreshToken ,
-      accessToken
-    }
+const registerUser = asyncHandler(async (req, res) => {
+  const { fullName, email, password, adminSuperKey, phoneNumber, address } =
+    req.body;
 
-}
+  requredField([fullName, email, password, phoneNumber]);
 
-const registerUser = asyncHandler(async(req,res)=>{
-
-
-    const { fullName, email, password, adminSuperKey, phoneNumber, address } = req.body
-
-    requredField([fullName,email,password,phoneNumber])
-
-    let role;
-    if(adminSuperKey !== adminKey) {
-        role = "user"
-    } else {
-        role = "admin"
-    }
-
-    const alreadyExist = await User.findOne({email})
-
-    if(alreadyExist) {
-      console.log(alreadyExist)
-      throw new ApiError(400 ,`${alreadyExist.role} already exist`)
-    }
-
-
-    const user = await User.create({
-          fullName,
-          password,
-          email,
-          phoneNumber,
-          role : role,
-          address : address
-        })
-
-      await removeRefreshTokenAndPassword(user._id)
-
-    return res.status(200).json(new ApiResponse(201, {}, `${user.role} created Successfully`))
-})
-
-const loginUser = asyncHandler(async(req,res)=>{
-
-  const { email, password } = req.body
-
-  requredField([email,password])
-
-    const user = await User.findOne({email})
-
-    if(!user) {
-      throw new ApiError(401, "User can't exist with this email")
-    }
-
-  const passwordValid = await user.isPasswordCorrect(password)
-
-  if(!passwordValid) {
-    throw new ApiError(403, "Please check Credientials")
+  let role;
+  if (adminSuperKey !== adminKey) {
+    role = "user";
+  } else {
+    role = "admin";
   }
 
-  const { refreshToken, accessToken } = await generateAccessRefreshToken(user._id)
+  const alreadyExist = await User.findOne({ email });
 
-  await User.findById(user._id).select("-password -refreshToken")
+  if (alreadyExist) {
+    console.log(alreadyExist);
+    throw new ApiError(400, `${alreadyExist.role} already exist`);
+  }
+
+  const user = await User.create({
+    fullName,
+    password,
+    email,
+    phoneNumber,
+    role: role,
+    address: address,
+  });
+
+  await removeRefreshTokenAndPassword(user._id);
 
   return res
-  .status(200)
-  .cookie("accessToken" , accessToken, option)
-  .cookie("refreshToken" , refreshToken, option)
-  .json(new ApiResponse(200, {} , `${user.role} logged in successfully`))
-})
+    .status(200)
+    .json(new ApiResponse(201, {}, `${user.role} created Successfully`));
+});
 
-const logoutUser = asyncHandler(async(req,res)=>{
-   const user = req.user
+const loginUser = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
 
-    await User.findByIdAndUpdate(user._id,
+  requredField([email, password]);
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    throw new ApiError(401, "User can't exist with this email");
+  }
+
+  const passwordValid = await user.isPasswordCorrect(password);
+
+  if (!passwordValid) {
+    throw new ApiError(403, "Please check Credientials");
+  }
+
+  const { refreshToken, accessToken } = await generateAccessRefreshToken(
+    user._id,
+  );
+
+  await User.findById(user._id).select("-password -refreshToken");
+
+  return res
+    .status(200)
+    .cookie("accessToken", accessToken, option)
+    .cookie("refreshToken", refreshToken, option)
+    .json(new ApiResponse(200, {}, `${user.role} logged in successfully`));
+});
+
+const logoutUser = asyncHandler(async (req, res) => {
+  const user = req.user;
+
+  await User.findByIdAndUpdate(
+    user._id,
     {
-          $set : {
-            refreshToken : ""
-          }
-    }, { save : true })
-
-
-
-   return res
-      .status(200)
-      .cookie("accessToken" , "", option)
-      .cookie("refreshToken", "", option)
-      .json(new ApiResponse(200, {}, "user logged out successfully"))
-})
-
-const updateUserFiled = asyncHandler(async(req,res)=>{
-
-    requredField([...req.body])
-
-   const user = await User.findByIdAndUpdate(req.user._id, {
-        $set : req.body
-    }, {save : true})
-
-     await removeRefreshTokenAndPassword(user._id)
-
+      $set: {
+        refreshToken: "",
+      },
+    },
+    { save: true },
+  );
 
   return res
-        .status(204)
-        .json(new ApiResponse(204, {}, `${user.role} filed update successfully`))
+    .status(200)
+    .cookie("accessToken", "", option)
+    .cookie("refreshToken", "", option)
+    .json(new ApiResponse(200, {}, "user logged out successfully"));
+});
 
-})
+const updateUserFiled = asyncHandler(async (req, res) => {
+  requredField([...req.body]);
 
-const updateAvatar = asyncHandler(async(req,res)=>{
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: req.body,
+    },
+    { save: true },
+  );
 
-  const  file = req.files
-
-    const user = await User.findByIdAndUpdate(req.user._id, {
-        $set : {
-          avatar : file.uri
-        }
-    })
-
-     await removeRefreshTokenAndPassword(user._id)
-  return res
-    .status(204)
-    .json(new ApiResponse(204, {}, ``))
-})
-
-const changeCurrentPassword = asyncHandler(async(req,res)=>{
-
-    const { oldPassword, newPassword } = req.body
-
-    requredField([oldPassword, newPassword])
-
-    const user = await User.findById(req.user._id)
-
-    const isValidaPassword =  await  user.isPasswordCorrect(oldPassword)
-
-    if(!isValidaPassword) {
-      throw new ApiError(404, "Credentials failed")
-    }
-
-    user.password = newPassword
-
-    user.save({ validateBeforeSave : false })
-
-   await removeRefreshTokenAndPassword(user._id)
+  await removeRefreshTokenAndPassword(user._id);
 
   return res
     .status(204)
-    .json(new ApiResponse(204,{}, `${user.role} password changed successfully`))
-})
+    .json(new ApiResponse(204, {}, `${user.role} filed update successfully`));
+});
 
-const verifyEmailRequest = asyncHandler(async(req,res)=>{
+const updateAvatar = asyncHandler(async (req, res) => {
+  // Check if avatar file provided
+  if (!req.file) {
+    throw new ApiError(400, "Avatar file is required");
+  }
 
-    const user = await User.findById(req.user._id)
+  // Upload to cloudinary
+  const avatarData = await uploadOnCloudinary(
+    req.file.path,
+    "restaurant/avatars",
+  );
 
-    if(!user) {
-       throw new ApiError(404, "user not found")
-    }
+  // Update user avatar
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      $set: {
+        avatar: avatarData.secure_url,
+      },
+    },
+    { new: true },
+  );
 
-    const { unHashedToken, hashedToken, tokenExpiry } =  user.generateTemporaryToken(user._id)
+  await removeRefreshTokenAndPassword(user._id);
 
-    user.emailVerificationExpiry = hashedToken
-    user.emailVerificationToken = tokenExpiry
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { avatar: avatarData.secure_url },
+        "Avatar updated successfully",
+      ),
+    );
+});
 
-  await user.save({ validateBeforeSave : false })
+const changeCurrentPassword = asyncHandler(async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
 
+  requredField([oldPassword, newPassword]);
 
+  const user = await User.findById(req.user._id);
 
-  return  res
+  const isValidaPassword = await user.isPasswordCorrect(oldPassword);
+
+  if (!isValidaPassword) {
+    throw new ApiError(404, "Credentials failed");
+  }
+
+  user.password = newPassword;
+
+  user.save({ validateBeforeSave: false });
+
+  await removeRefreshTokenAndPassword(user._id);
+
+  return res
     .status(204)
-    .json(new ApiResponse(204, { "token" : unHashedToken } , `${user.role} verify emailId`))
-})
+    .json(
+      new ApiResponse(204, {}, `${user.role} password changed successfully`),
+    );
+});
 
-const verifyEmail = asyncHandler(async(req,res)=>{
+const verifyEmailRequest = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
 
-    const { verificationToken  } = req.body
+  if (!user) {
+    throw new ApiError(404, "user not found");
+  }
 
+  const { unHashedToken, hashedToken, tokenExpiry } =
+    user.generateTemporaryToken(user._id);
 
-    if(!verificationToken){
-      throw new ApiError(404,"Email verification Token Missing")
-    }
+  user.emailVerificationExpiry = hashedToken;
+  user.emailVerificationToken = tokenExpiry;
+
+  await user.save({ validateBeforeSave: false });
+
+  return res
+    .status(204)
+    .json(
+      new ApiResponse(
+        204,
+        { token: unHashedToken },
+        `${user.role} verify emailId`,
+      ),
+    );
+});
+
+const verifyEmail = asyncHandler(async (req, res) => {
+  const { verificationToken } = req.body;
+
+  if (!verificationToken) {
+    throw new ApiError(404, "Email verification Token Missing");
+  }
 
   let hashedToken = crypto
     .createHash("sha256")
     .update(verificationToken)
-    .digest("hex")
+    .digest("hex");
 
+  const user = await User.findOne({
+    emailVerificationToken: hashedToken,
+    emailVerificationExpiry: { $gt: Date.now() },
+  });
 
-    const user = await User.findOne({
-      emailVerificationToken : hashedToken,
-      emailVerificationExpiry : {$gt : Date.now()}
-    })
-
-      return res
-          .status(204)
-          .json(new ApiResponse(204 , {} , " Email Verified successfully "))
-})
-
-
+  return res
+    .status(204)
+    .json(new ApiResponse(204, {}, " Email Verified successfully "));
+});
 
 export {
   registerUser,
@@ -227,5 +252,5 @@ export {
   updateAvatar,
   changeCurrentPassword,
   verifyEmailRequest,
-  verifyEmail
-}
+  verifyEmail,
+};

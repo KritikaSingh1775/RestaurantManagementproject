@@ -1,68 +1,88 @@
-import asyncHandler from '../utils/asyncHandler.js';
-import ApiResponse from '../utils/ApiResponse.js';
-import { requredField } from '../utils/helper.js';
-import Menu from '../models/menu.models.js';
+import asyncHandler from "../utils/asyncHandler.js";
+import ApiResponse from "../utils/ApiResponse.js";
+import { requredField } from "../utils/helper.js";
+import Menu from "../models/menu.models.js";
+import ApiError from "../utils/ApiError.js";
+import { uploadOnCloudinary } from "../services/cloudinary.service.js";
 
-const addNewMenu = asyncHandler(async(req,res)=>{
+const addNewMenu = asyncHandler(async (req, res) => {
+  const { itemsName, itemDescription, priceOfItem, itemCategory } = req.body;
 
-  const { itemName, itemDescription, itemImage, priceOfItem, itemCategory } = req.body
+  requredField([itemsName, priceOfItem, itemCategory]);
 
-    requredField([itemDescription, itemName, priceOfItem, itemCategory])
+  let itemImageUrl = "";
 
-    console.log({ itemName, itemDescription, itemImage, priceOfItem, itemCategory })
+  if (req.file) {
+    const menuImageData = await uploadOnCloudinary(
+      req.file.path,
+      "restaurant/menu",
+    );
+    itemImageUrl = menuImageData.secure_url;
+  } else {
+    itemImageUrl = req.body.itemImage || "";
+  }
 
+  if (!itemImageUrl) {
+    throw new ApiError(400, "Menu item image is required");
+  }
 
-    const menu = await Menu.create({
-        itemsName : itemName,
-        itemDescription : itemDescription,
-        itemImage : itemImage,
-        itemCategory : itemCategory,
-        priceOfItem : priceOfItem,
-    })
+  const menu = await Menu.create({
+    itemsName,
+    itemDescription: itemDescription || "",
+    itemImage: itemImageUrl,
+    itemCategory,
+    priceOfItem,
+    isAvailable: true,
+  });
 
-    return res.status(201).
-    json(new ApiResponse(201, {},`${menu.itemsName} in menu add successfully` ))
+  return res
+    .status(201)
+    .json(
+      new ApiResponse(
+        201,
+        menu,
+        `${menu.itemsName} added to menu successfully`,
+      ),
+    );
+});
 
-})
+const fetchMenuFullMenu = asyncHandler(async (req, res) => {
+  const items = await Menu.find();
 
-const fetchMenuFullMenu = asyncHandler(async(req,res)=>{
+  return res
+    .status(200)
+    .json(new ApiResponse(200, items, "all items fetch successfully"));
+});
 
-  const items = await Menu.find()
+const deleteItem = asyncHandler(async (req, res) => {
+  const { itemId } = req.params;
 
-  return res.status(200).json(new ApiResponse(200, items ,"all items fetch successfully"))
-})
+  await Menu.findByIdAndDelete(itemId);
 
-const deleteItem = asyncHandler(async(req,res)=>{
+  return res
+    .status(204)
+    .json(new ApiResponse(204, {}, "Item delete sucessfully"));
+});
 
-  const  {itemId} = req.params
+const changePrice = asyncHandler(async (req, res) => {
+  const { itemId } = req.params;
+  const { newPrice } = req.body;
 
-  await Menu.findByIdAndDelete(itemId)
+  requredField([newPrice]);
 
-  return res.status(204).json(new ApiResponse(204, {}, "Item delete sucessfully"))
-})
+  await Menu.findByIdAndUpdate(
+    itemId,
+    {
+      $set: {
+        priceOfItem: newPrice,
+      },
+    },
+    { save: false },
+  );
 
-const changePrice = asyncHandler(async(req,res)=>{
+  return res
+    .status(201)
+    .json(new ApiResponse(201, {}, "item update successfully"));
+});
 
-  const { itemId } = req.params
-  const { newPrice } = req.body
-
-  requredField([newPrice])
-
-  await Menu.findByIdAndUpdate(itemId, {
-    $set : {
-        priceOfItem : newPrice
-    }
-  }, { save : false })
-
-    return res.status(201).json(new ApiResponse(201, {}, "item update successfully"))
-})
-
-
-
-
-export {
-  addNewMenu,
-  fetchMenuFullMenu,
-  deleteItem,
-  changePrice
-}
+export { addNewMenu, fetchMenuFullMenu, deleteItem, changePrice };
